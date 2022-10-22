@@ -1,4 +1,4 @@
-name: "terraform-build"
+name: "terraform-destroy"
 
 on:
   workflow_call:
@@ -53,9 +53,9 @@ jobs:
         shell: bash
         run: terraform -chdir=${{ env.subfolder }} init -var-file="main.tfvars"
       
-      - name: "terraform: plan"
+      - name: "terraform: plan destroy"
         shell: bash
-        run: terraform -chdir=${{ env.subfolder }} plan -var-file="main.tfvars" -input=false
+        run: terraform -chdir=${{ env.subfolder }} plan -destroy -var-file="main.tfvars" -input=false
         env:
           TF_VAR_environment: ${{ inputs.environment }}
           TF_VAR_aws_env_access_key: ${{ secrets.aws-env-access-key }}
@@ -63,10 +63,10 @@ jobs:
           TF_VAR_aws_general_access_key: ${{ secrets.aws-general-access-key }}
           TF_VAR_aws_general_secret_key: ${{ secrets.aws-general-secret-key }}
 
-      - name: "terraform: apply"
+      - name: "terraform: apply destroy"
         if: inputs.apply-terraform == 'True'
         shell: bash
-        run: terraform -chdir=${{ env.SUBFOLDER }} apply -var-file="main.tfvars" -input=false -auto-approve
+        run: terraform -chdir=${{ env.SUBFOLDER }} destroy -var-file="main.tfvars" -input=false -auto-approve
         env:
           TF_VAR_environment: ${{ inputs.environment }}
           TF_VAR_aws_env_access_key: ${{ secrets.aws-env-access-key }}
