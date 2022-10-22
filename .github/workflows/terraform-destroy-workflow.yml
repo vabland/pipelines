@@ -39,7 +39,7 @@ env:
   project-name: vabland
 
 jobs:
-  build:
+  destroy:
     runs-on: ubuntu-latest
 
     steps:

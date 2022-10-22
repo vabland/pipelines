@@ -92,3 +92,4 @@ jobs:
         if: ${{ inputs.apply-terraform }}
         shell: bash
         run: aws s3 sync ${{ env.subfolder }} s3://${{ env.project-name }}-${{ inputs.environment }}-tf-states/${{ inputs.domain-name }}/ --exclude "*" --include "*.tfstate*"
+  
