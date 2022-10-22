@@ -1,0 +1,77 @@
+name: "terraform-build"
+description: "Build the infrastructure and publish it"
+
+inputs:
+  environment:
+    description: Current Environment 
+    required: true
+  aws-region:
+    description: Make a choice
+    required: true
+  aws-env-access-key:
+    description: AWS current environment access key
+    required: true
+  aws-env-secret-key:
+    description: AWS current environment secret key
+    required: true
+  aws-general-access-key:
+    description: AWS general environment access key
+    required: true
+  aws-general-secret-key:
+    description: AWS general environment secret key
+    required: true
+  apply-terraform:
+    description: To Apply terraform or not
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "setup: variables"
+      shell: bash
+      run: |
+        PROJECT_NAME="vabland"
+        SUBFOLDER="terraform"
+        echo "PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
+        echo "SUBFOLDER=${SUBFOLDER}" >> $GITHUB_ENV
+        echo ${{ inputs.apply-terraform }}
+
+    - name: "setup: repository"
+      uses: actions/checkout@v3.1.0
+
+    - name: "setup: aws-cli"
+      uses: aws-actions/configure-aws-credentials@v1-node16
+      with:
+        aws-region: ${{ inputs.aws-region }}
+        aws-access-key-id: ${{ inputs.aws-env-access-key }}
+        aws-secret-access-key: ${{ inputs.aws-env-secret-key }}
+
+    - name: "setup: terraform"
+      uses: hashicorp/setup-terraform@v2.0.2
+      with:
+        terraform_version: 1.3.3
+    
+    - name: "terraform: init"
+      shell: bash
+      run: terraform -chdir=${{ env.SUBFOLDER }} init -var-file="main.tfvars"
+    
+    - name: "terraform: plan"
+      shell: bash
+      run: terraform -chdir=${{ env.SUBFOLDER }} plan -var-file="main.tfvars" -input=false
+      env:
+        TF_VAR_environment: ${{ inputs.environment }}
+        TF_VAR_aws_env_access_key: ${{ inputs.aws-env-access-key }}
+        TF_VAR_aws_env_secret_key: ${{ inputs.aws-env-secret-key }}
+        TF_VAR_aws_general_access_key: ${{ inputs.aws-general-access-key }}
+        TF_VAR_aws_general_secret_key: ${{ inputs.aws-general-secret-key }}
+
+    - name: "terraform: apply"
+      if: inputs.apply-terraform == 'True'
+      shell: bash
+      run: terraform -chdir=${{ env.SUBFOLDER }} apply -var-file="main.tfvars" -input=false -auto-approve
+      env:
+        TF_VAR_environment: ${{ inputs.environment }}
+        TF_VAR_aws_env_access_key: ${{ inputs.aws-env-access-key }}
+        TF_VAR_aws_env_secret_key: ${{ inputs.aws-env-secret-key }}
+        TF_VAR_aws_general_access_key: ${{ inputs.aws-general-access-key }}
+        TF_VAR_aws_general_secret_key: ${{ inputs.aws-general-secret-key }}
