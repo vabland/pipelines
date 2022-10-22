@@ -3,6 +3,10 @@ name: "terraform-build"
 on:
   workflow_call:
     inputs:
+      domain-name:
+        type: string
+        required: true
+        description: Domain Name
       environment:
         type: string
         required: true
@@ -15,6 +19,11 @@ on:
         type: boolean
         required: true
         description: Terraform Auto Apply
+      state-continue-on-error:
+        type: boolean
+        required: false
+        default: false
+        description: Continue on error when sync terraform state
     secrets:
       aws-env-access-key:
         required: true
@@ -48,11 +57,16 @@ jobs:
         uses: hashicorp/setup-terraform@v2.0.2
         with:
           terraform_version: 1.3.3
-      
+
       - name: "terraform: init"
         shell: bash
         run: terraform -chdir=${{ env.subfolder }} init -var-file="main.tfvars"
-      
+
+      - name: "terraform: pull state"
+        shell: bash
+        run: aws s3 cp s3://${{ env.project-name }}-${{ inputs.environment }}-tf-states/${{ inputs.domain-name }}/ ${{ env.subfolder }} --recursive --exclude "*" --include "*.tfstate*"
+        continue-on-error: ${{ inputs.state-continue-on-error }}
+
       - name: "terraform: plan"
         shell: bash
         run: terraform -chdir=${{ env.subfolder }} plan -var-file="main.tfvars" -input=false
@@ -64,12 +78,17 @@ jobs:
           TF_VAR_aws_general_secret_key: ${{ secrets.aws-general-secret-key }}
 
       - name: "terraform: apply"
-        if: inputs.apply-terraform == 'True'
+        if: ${{ inputs.apply-terraform }}
         shell: bash
-        run: terraform -chdir=${{ env.SUBFOLDER }} apply -var-file="main.tfvars" -input=false -auto-approve
+        run: terraform -chdir=${{ env.subfolder }} apply -var-file="main.tfvars" -input=false -auto-approve
         env:
           TF_VAR_environment: ${{ inputs.environment }}
           TF_VAR_aws_env_access_key: ${{ secrets.aws-env-access-key }}
           TF_VAR_aws_env_secret_key: ${{ secrets.aws-env-secret-key }}
           TF_VAR_aws_general_access_key: ${{ secrets.aws-general-access-key }}
           TF_VAR_aws_general_secret_key: ${{ secrets.aws-general-secret-key }}
+
+      - name: "terraform: push state"
+        if: ${{ inputs.apply-terraform }}
+        shell: bash
+        run: aws s3 sync ${{ env.subfolder }} s3://${{ env.project-name }}-${{ inputs.environment }}-tf-states/${{ inputs.domain-name }}/ --exclude "*" --include "*.tfstate*"
