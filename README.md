@@ -3,7 +3,7 @@
 ## Description
 This repository have all github workflows templates to be used for vabland projects.
 
----
+
 ## Usage
 On jobs configuration:
 
