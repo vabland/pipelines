@@ -50,8 +50,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-region: ${{ inputs.aws-region }}
-          aws-access-key-id: ${{ secrets.aws-env-access-key }}
-          aws-secret-access-key: ${{ secrets.aws-env-secret-key }}
+          aws-access-key-id: ${{ secrets.aws-general-access-key }}
+          aws-secret-access-key: ${{ secrets.aws-general-secret-key }}
 
       - name: "setup: terraform"
         uses: hashicorp/setup-terraform@v2.0.2
@@ -64,7 +64,7 @@ jobs:
 
       - name: "terraform: pull state"
         shell: bash
-        run: aws s3 cp s3://${{ env.project-name }}-${{ inputs.environment }}-tf-states/${{ inputs.domain-name }}/ ${{ env.subfolder }} --recursive --exclude "*" --include "*.tfstate*"
+        run: aws s3 cp s3://${{ env.project-name }}-tf-states/${{ inputs.environment }}/${{ inputs.domain-name }}/ ${{ env.subfolder }} --recursive --exclude "*" --include "*.tfstate*"
         continue-on-error: true
 
       - name: "terraform: plan destroy"
@@ -91,5 +91,5 @@ jobs:
       - name: "terraform: push state"
         if: ${{ inputs.destroy-terraform }}
         shell: bash
-        run: aws s3 sync ${{ env.subfolder }} s3://${{ env.project-name }}-${{ inputs.environment }}-tf-states/${{ inputs.domain-name }}/ --exclude "*" --include "*.tfstate*"
+        run: aws s3 sync ${{ env.subfolder }} s3://${{ env.project-name }}-tf-states/${{ inputs.environment }}/${{ inputs.domain-name }}/ --exclude "*" --include "*.tfstate*"
         continue-on-error: ${{ inputs.state-continue-on-error }}
