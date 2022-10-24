@@ -78,9 +78,11 @@ jobs:
           TF_VAR_aws_general_secret_key: ${{ secrets.aws-general-secret-key }}
 
       - name: "terraform: destroy"
+        id: tfdestroy
         if: ${{ inputs.destroy-terraform }}
         shell: bash
         run: terraform -chdir=${{ env.subfolder }} destroy -var-file="main.tfvars" -input=false -auto-approve
+        continue-on-error: true
         env:
           TF_VAR_environment: ${{ inputs.environment }}
           TF_VAR_aws_env_access_key: ${{ secrets.aws-env-access-key }}
@@ -93,3 +95,7 @@ jobs:
         shell: bash
         run: aws s3 sync ${{ env.subfolder }} s3://${{ env.project-name }}-tf-states/${{ inputs.environment }}/${{ inputs.domain-name }}/ --exclude "*" --include "*.tfstate*"
         continue-on-error: ${{ inputs.state-continue-on-error }}
+
+      - name: "check failures"
+        if: steps.tfdestroy.outcome != 'success'
+        run: exit 1
