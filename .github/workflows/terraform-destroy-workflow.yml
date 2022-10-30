@@ -97,5 +97,5 @@ jobs:
         continue-on-error: ${{ inputs.state-continue-on-error }}
 
       - name: "check failures"
-        if: steps.tfdestroy.outcome != 'success'
+        if: inputs.destroy-terraform && steps.tfdestroy.outcome != 'success'
         run: exit 1
