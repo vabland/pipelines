@@ -1,7 +1,7 @@
-# vabland: github-workflows
+# vabland: pipelines
 
 ## Description
-This repository have all github workflows templates to be used for vabland projects.
+This repository have all github workflows templates to be used for vabland projects as jobs on their pipelines.
 
 ## Setup Project
 Run: `./setup-project.sh`
