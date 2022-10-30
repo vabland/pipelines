@@ -3,6 +3,8 @@
 ## Description
 This repository have all github workflows templates to be used for vabland projects.
 
+## Setup Project
+Run: `./setup-project.sh`
 
 ## Usage
 On jobs configuration:
