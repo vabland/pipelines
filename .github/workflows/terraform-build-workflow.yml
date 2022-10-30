@@ -58,6 +58,10 @@ jobs:
         with:
           terraform_version: 1.3.3
 
+      - name: "terraform: format check"
+        shell: bash
+        run: terraform -chdir=${{ env.subfolder }} fmt -recursive -diff -check"
+
       - name: "terraform: init"
         shell: bash
         run: terraform -chdir=${{ env.subfolder }} init -var-file="main.tfvars"
