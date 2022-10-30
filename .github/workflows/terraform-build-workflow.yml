@@ -71,6 +71,16 @@ jobs:
         run: aws s3 cp s3://${{ env.project-name }}-tf-states/${{ inputs.environment }}/${{ inputs.domain-name }}/ ${{ env.subfolder }} --recursive --exclude "*" --include "*.tfstate*"
         continue-on-error: ${{ inputs.state-continue-on-error }}
 
+      - name: "terraform: refresh"
+        shell: bash
+        run: terraform -chdir=${{ env.subfolder }} refresh -var-file="main.tfvars" -input=false
+        env:
+          TF_VAR_environment: ${{ inputs.environment }}
+          TF_VAR_aws_env_access_key: ${{ secrets.aws-env-access-key }}
+          TF_VAR_aws_env_secret_key: ${{ secrets.aws-env-secret-key }}
+          TF_VAR_aws_general_access_key: ${{ secrets.aws-general-access-key }}
+          TF_VAR_aws_general_secret_key: ${{ secrets.aws-general-secret-key }}
+
       - name: "terraform: plan"
         shell: bash
         run: terraform -chdir=${{ env.subfolder }} plan -var-file="main.tfvars" -input=false
