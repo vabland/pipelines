@@ -60,7 +60,7 @@ jobs:
 
       - name: "terraform: format check"
         shell: bash
-        run: terraform -chdir=${{ env.subfolder }} fmt -recursive -diff -check"
+        run: terraform -chdir=${{ env.subfolder }} fmt -recursive -diff -check
 
       - name: "terraform: init"
         shell: bash
