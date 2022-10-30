@@ -101,5 +101,5 @@ jobs:
         run: aws s3 sync ${{ env.subfolder }} s3://${{ env.project-name }}-tf-states/${{ inputs.environment }}/${{ inputs.domain-name }}/ --exclude "*" --include "*.tfstate*"
 
       - name: "check failures"
-        if: steps.tfapply.outcome != 'success' || steps.tfstatepush.outcome != 'success'
+        if: inputs.apply-terraform && (steps.tfapply.outcome != 'success' || steps.tfstatepush.outcome != 'success')
         run: exit 1
