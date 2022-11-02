@@ -1,0 +1,114 @@
+name: "app-destroy"
+
+on:
+  workflow_call:
+    inputs:
+      domain-name:
+        type: string
+        required: true
+        description: Domain Name
+      environment:
+        type: string
+        required: true
+        description: Choose Environment
+      aws-region:
+        type: string
+        required: true
+        description: Choose AWS Region
+      destroy-terraform:
+        type: boolean
+        required: true
+        description: Terraform Auto Destroy
+      state-continue-on-error:
+        type: boolean
+        required: false
+        default: false
+        description: Continue on error when sync terraform state
+    secrets:
+      aws-env-access-key:
+        required: true
+      aws-env-secret-key:
+        required: true
+      aws-general-access-key:
+        required: true
+      aws-general-secret-key:
+        required: true
+
+env:
+  subfolder: terraform
+  project-name: vabland
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "setup: repository"
+        uses: actions/checkout@v3.1.0
+
+      - name: "setup: node"
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: "node: install"
+        shell: bash
+        run: npm install
+
+      - name: "node: build"
+        shell: bash
+        run: npm run build
+
+      - name: "setup: aws-cli"
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-region: ${{ inputs.aws-region }}
+          aws-access-key-id: ${{ secrets.aws-general-access-key }}
+          aws-secret-access-key: ${{ secrets.aws-general-secret-key }}
+
+      - name: "setup: terraform"
+        uses: hashicorp/setup-terraform@v2.0.2
+        with:
+          terraform_version: 1.3.3
+
+      - name: "terraform: init"
+        shell: bash
+        run: terraform -chdir=${{ env.subfolder }} init -var-file="main.tfvars"
+
+      - name: "terraform: pull state"
+        shell: bash
+        run: aws s3 cp s3://${{ env.project-name }}-tf-states/${{ inputs.environment }}/${{ inputs.domain-name }}/ ${{ env.subfolder }} --recursive --exclude "*" --include "*.tfstate*"
+        continue-on-error: true
+
+      - name: "terraform: plan destroy"
+        shell: bash
+        run: terraform -chdir=${{ env.subfolder }} plan -destroy -var-file="main.tfvars" -input=false
+        env:
+          TF_VAR_environment: ${{ inputs.environment }}
+          TF_VAR_aws_env_access_key: ${{ secrets.aws-env-access-key }}
+          TF_VAR_aws_env_secret_key: ${{ secrets.aws-env-secret-key }}
+          TF_VAR_aws_general_access_key: ${{ secrets.aws-general-access-key }}
+          TF_VAR_aws_general_secret_key: ${{ secrets.aws-general-secret-key }}
+
+      - name: "terraform: destroy"
+        id: tfdestroy
+        if: ${{ inputs.destroy-terraform }}
+        shell: bash
+        run: terraform -chdir=${{ env.subfolder }} destroy -var-file="main.tfvars" -input=false -auto-approve
+        continue-on-error: true
+        env:
+          TF_VAR_environment: ${{ inputs.environment }}
+          TF_VAR_aws_env_access_key: ${{ secrets.aws-env-access-key }}
+          TF_VAR_aws_env_secret_key: ${{ secrets.aws-env-secret-key }}
+          TF_VAR_aws_general_access_key: ${{ secrets.aws-general-access-key }}
+          TF_VAR_aws_general_secret_key: ${{ secrets.aws-general-secret-key }}
+
+      - name: "terraform: push state"
+        if: ${{ inputs.destroy-terraform }}
+        shell: bash
+        run: aws s3 sync ${{ env.subfolder }} s3://${{ env.project-name }}-tf-states/${{ inputs.environment }}/${{ inputs.domain-name }}/ --exclude "*" --include "*.tfstate*"
+        continue-on-error: ${{ inputs.state-continue-on-error }}
+
+      - name: "check failures"
+        if: inputs.destroy-terraform && steps.tfdestroy.outcome != 'success'
+        run: exit 1
